@@ -40,6 +40,11 @@ def chat_with_gpt(req):
         # Extract the assistant's (AI's) text from the response
         res = response['choices'][0]['message']['content']
         rospy.loginfo("Assistant: %s", res)
+        messages.append({"role": "assistant", "content": res})
+
+        tokens = response["usage"]["total_tokens"]
+        print("Num of tokens: " + str(tokens))
+
         return GptServiceResponse(res)
     except Exception as e:
         rospy.logerr("Failed to call OpenAI API: %s", e)
