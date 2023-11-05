@@ -18,6 +18,7 @@ add_message_files(
 add_service_files(
   FILES
   Completion.srv
+  GptService.srv
 )
 
 generate_messages(
@@ -57,5 +58,6 @@ include_directories(
 
 catkin_install_python(
   PROGRAMS scripts/openai_node.py
+  PROGRAMS scripts/openai_chat_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   )
