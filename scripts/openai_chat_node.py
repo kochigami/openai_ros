@@ -2,6 +2,7 @@
 import rospy
 from openai_ros.srv import GptService, GptServiceResponse
 from naoqi_bridge_msgs.srv import SetString, SetStringResponse
+from naoqi_bridge_msgs.srv import GetString, GetStringResponse
 import openai
 
 # Global variable to store system content
@@ -13,6 +14,13 @@ def set_system_content(req):
     rospy.loginfo("System message updated: %s", system_message)
     res = SetStringResponse()
     res.success = True
+    return res
+
+def get_system_content(req):
+    global system_message
+    rospy.loginfo("System message obtained: %s", system_message)
+    res = GetStringResponse()
+    res.data = system_message
     return res
  
 def chat_with_gpt(req):
@@ -53,6 +61,7 @@ def chat_with_gpt(req):
 def gpt_service():
     rospy.init_node('gpt_service')
     rospy.Service('set_system_content', SetString, set_system_content)
+    rospy.Service('get_system_content', GetString, get_system_content)
     rospy.Service('chat_with_gpt', GptService, chat_with_gpt)
     print("Ready to handle GPT-3.5 requests.")
     rospy.spin()
