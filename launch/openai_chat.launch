@@ -3,7 +3,7 @@
   <arg name="max_tokens" default="256" />
   <arg name="model" default="gpt-3.5-turbo" />
  
-  <node pkg="openai_ros" type="openai_chat_node.py" name="openai_chat" output="screen">
+  <node pkg="openai_ros" type="openai_chat_node.py" name="openai_chat" output="screen" respawn="true">
     <param name="key" value="$(arg key)" />
     <param name="max_tokens" value="$(arg max_tokens)" />
     <param name="model" value="$(arg model)" />
