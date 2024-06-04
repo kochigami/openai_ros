@@ -2,8 +2,28 @@
 
 from openai_ros.msg import StringArray
 from openai_ros.srv import Completion, CompletionResponse
+from naoqi_bridge_msgs.srv import SetString, SetStringResponse
+from naoqi_bridge_msgs.srv import GetString, GetStringResponse
 import rospy
 from openai import OpenAI
+
+# Global variable to store system content
+system_message = ""
+
+def set_system_content(req):
+    global system_message
+    system_message = req.data
+    rospy.loginfo("System message updated: %s", system_message)
+    res = SetStringResponse()
+    res.success = True
+    return res
+
+def get_system_content(req):
+    global system_message
+    rospy.loginfo("System message obtained: %s", system_message)
+    res = GetStringResponse()
+    res.data = system_message
+    return res
 
 def legacy_servicer(req):
     global client, max_tokens, model
@@ -24,12 +44,15 @@ def legacy_servicer(req):
     return res
 
 def chat_servicer(req):
-    global client, max_tokens, model, message_history, max_history_length, system_prompt
+    global client, max_tokens, model, message_history, max_history_length
 
     res = CompletionResponse()
 
+    if system_message:  # Check if there is a system message to include
+        message_history.append({"role": "system", "content": system_message})
+
     message_history.append({"role": "user", "content": req.prompt})
-    response = client.chat.completions.create(model=model, messages=system_prompt + message_history, temperature=req.temperature, max_tokens=max_tokens)
+    response = client.chat.completions.create(model=model, messages=message_history, temperature=req.temperature, max_tokens=max_tokens)
 
     message_history.append({"role": "assistant", "content": response.choices[0].message.content})
     while len(message_history) > max_history_length:
@@ -50,17 +73,18 @@ def chat_servicer(req):
     return res
 
 def main():
-    global client, max_tokens, model, message_history, max_history_length, system_prompt
+    global client, max_tokens, model, message_history, max_history_length
     pub = rospy.Publisher('available_models', StringArray, queue_size=1, latch=True)
     rospy.init_node('openai_node', anonymous=True)
+
+    rospy.Service('set_system_content', SetString, set_system_content)
+    rospy.Service('get_system_content', GetString, get_system_content)
 
     client = OpenAI(api_key=rospy.get_param('~key'), base_url=rospy.get_param('~base_url'))
     max_tokens = rospy.get_param('~max_tokens', default=256)
     max_history_length = rospy.get_param('~max_history_length', default=12)
     model = rospy.get_param('~model', default='gpt-3.5-turbo')
-    system_prompt = rospy.get_param('~system_prompt', default='You are a helpful assistant.')
 
-    system_prompt = [{"role": "system", "content": system_prompt}]
     message_history = []
 
     models_msg = StringArray()
