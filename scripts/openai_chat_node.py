@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import rospy
-from openai_ros.srv import GptService, GptServiceResponse
+from openai_ros.srv import Completion, CompletionResponse
 from naoqi_bridge_msgs.srv import SetString, SetStringResponse
 from naoqi_bridge_msgs.srv import GetString, GetStringResponse
 import openai
@@ -45,24 +45,31 @@ def chat_with_gpt(req):
             # ]
         )
 
+        res = CompletionResponse()
         # Extract the assistant's (AI's) text from the response
-        res = response['choices'][0]['message']['content']
-        rospy.loginfo("Assistant: %s", res)
-        messages.append({"role": "assistant", "content": res})
 
-        tokens = response["usage"]["total_tokens"]
-        print("Num of tokens: " + str(tokens))
+        res.finish_reason = response['choices'][0]['finish_reason']
+        res.text = response['choices'][0]['message']['content']
+        rospy.loginfo("Assistant: %s", res.text)
+        messages.append({"role": "assistant", "content": res.text})
 
-        return GptServiceResponse(res)
+        res.model = response['model']
+        res.completion_tokens = response["usage"]["completion_tokens"]
+        res.prompt_tokens = response["usage"]["prompt_tokens"]
+        res.total_tokens = response["usage"]["total_tokens"]
+
+        print("Num of tokens: " + str(res.total_tokens))
+
+        return res
     except Exception as e:
         rospy.logerr("Failed to call OpenAI API: %s", e)
-        return GptServiceResponse("Error: Could not process your request.")
+        return CompletionResponse("Error: Could not process your request.")
   
 def gpt_service():
     rospy.init_node('gpt_service')
     rospy.Service('set_system_content', SetString, set_system_content)
     rospy.Service('get_system_content', GetString, get_system_content)
-    rospy.Service('chat_with_gpt', GptService, chat_with_gpt)
+    rospy.Service('get_response', Completion, chat_with_gpt)
     print("Ready to handle GPT-3.5 requests.")
     rospy.spin()
  
